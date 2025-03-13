@@ -9,7 +9,7 @@ requests
 cryptography
 tensorflow-cpu
 numpy==1.26.4
-rdkit-pypi
+rdkit
 pubchempy
 xgboost 
 scikit-learn 
