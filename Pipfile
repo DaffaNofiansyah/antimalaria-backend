@@ -1,0 +1,28 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+django = "==5.1.4"
+gunicorn = "*"
+djangorestframework = "*"
+psycopg2-binary = "*"
+django-environ = "*"
+djangorestframework-simplejwt = "==5.3.1"
+django-allauth = "*"
+requests = "*"
+cryptography = "*"
+tensorflow-cpu = "*"
+numpy = "==1.26.4"
+rdkit-pypi = "*"
+pubchempy = "*"
+xgboost = "*"
+scikit-learn = "*"
+joblib = "*"
+django-cors-headers = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"
