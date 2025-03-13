@@ -1,0 +1,16 @@
+Django==5.1.4
+gunicorn
+djangorestframework
+psycopg2
+django-environ
+djangorestframework-simplejwt==5.3.1
+django-allauth
+requests
+cryptography
+tensorflow-cpu
+numpy==1.26.4
+rdkit-pypi
+pubchempy
+xgboost 
+scikit-learn 
+joblib
