@@ -1,3 +1,13 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:1ea9096f287aa41c3feae0aeeeca0d25fd209119c486af0bb9728377b009e4f7
-size 447
+{
+    "builds": [{
+      "src": "antimalaria_backend/wsgi.py",
+      "use": "@vercel/python",
+      "config": { "maxLambdaSize": "15mb", "runtime": "python3.11.5" }
+    }],
+    "routes": [
+      {
+        "src": "/(.*)",
+        "dest": "antimalaria_backend/wsgi.py"
+      }
+    ]
+}
