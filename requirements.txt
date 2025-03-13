@@ -1,7 +1,7 @@
 Django==5.1.4
 gunicorn
 djangorestframework
-psycopg2
+psycopg2-binary
 django-environ
 djangorestframework-simplejwt==5.3.1
 django-allauth
