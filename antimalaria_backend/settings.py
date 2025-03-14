@@ -134,7 +134,7 @@ WSGI_APPLICATION = 'antimalaria_backend.wsgi.application'
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
-GOOGLE_CLIENT_ID = env('GOOGLE_CLIENT_ID')
+# GOOGLE_CLIENT_ID = env('GOOGLE_CLIENT_ID')
 
 DATABASES = {
     'default': {
