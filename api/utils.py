@@ -95,12 +95,12 @@ def predict_ic50(smiles, model_name):
 
     if model_name.endswith(".h5"):  # TensorFlow
         prediction = model.predict(fingerprint)
+        return float(prediction[0][0])
     elif model_name.endswith(".pkl"):  # Random Forest
-        prediction = model.predict(fingerprint)[0]
+        return float(model.predict(fingerprint)[0])
     elif model_name.endswith(".json"):  # XGBoost
         feature_names = [f"bit{i}" for i in range(fingerprint.shape[1])]
         dmatrix = xgb.DMatrix(fingerprint, feature_names=feature_names)
-        prediction = model.predict(dmatrix)[0]
+        return float(model.predict(dmatrix)[0])
     else:
-        return {"error": "Unsupported model format"}
-    return prediction
+        raise ValueError("Unsupported model format")
