@@ -28,4 +28,4 @@ EXPOSE 8000
 
 # Run the application
 # CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "-k", "gevent", "antimalaria_backend.wsgi:application"]
-CMD ["uvicorn", "antimalaria_backend.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "10"]
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120", "--keep-alive", "10", "antimalaria_backend.asgi:application"]
