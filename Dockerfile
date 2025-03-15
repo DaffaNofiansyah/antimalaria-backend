@@ -24,9 +24,9 @@ RUN mkdir -p /app/ml_models && \
 # Install dependencies
 
 # Expose the port the app will run on
-EXPOSE 8000
+EXPOSE 8080
 
 # Run the application
 # CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "-k", "gevent", "antimalaria_backend.wsgi:application"]
 # CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120", "--keep-alive", "10", "antimalaria_backend.asgi:application"]
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--workers", "2", "--timeout", "120", "--keep-alive", "10", "antimalaria_backend.asgi:application"]
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--workers", "2", "--timeout", "120", "--keep-alive", "10", "--lifespan", "on", "antimalaria_backend.asgi:application"]
