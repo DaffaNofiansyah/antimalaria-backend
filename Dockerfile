@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM python:3.10
+FROM python:3.9-slim
 
 # Install required system dependencies (including wget and curl)
 RUN apt-get update && apt-get install -y wget curl && rm -rf /var/lib/apt/lists/*
@@ -49,4 +49,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 8000
 
 # Run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "-k", "gevent", "antimalaria_backend.wsgi:application"]
+# CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "-k", "gevent", "antimalaria_backend.wsgi:application"]
+CMD ["uvicorn", "antimalaria_backend.asgi:application", "--host", "0.0.0.0", "--port", "8000"]

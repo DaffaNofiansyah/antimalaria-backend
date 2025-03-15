@@ -1,5 +1,6 @@
 Django
 gunicorn
+uvicorn
 gevent
 djangorestframework
 psycopg2-binary
