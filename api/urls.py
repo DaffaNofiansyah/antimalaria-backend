@@ -17,6 +17,6 @@ urlpatterns = [
     path("compounds/", views.CompoundBaseView.as_view(), name="compound-list"),
     path("predictions/", views.PredictionListView.as_view(), name="prediction-list"),
     path("predictions/<int:prediction_id>/", views.CompoundListView.as_view(), name="prediction-detail"),
-    path("predictions/<int:prediction_id>/compounds/<int:compound_id>/", views.CompoundDetailView.as_view(), name="compound-detail"),
+    path("compounds/<int:compound_id>/", views.CompoundDetailView.as_view(), name="compound-detail"),
     path("statistics/", views.StatisticsView.as_view(), name="statistics"),
 ]

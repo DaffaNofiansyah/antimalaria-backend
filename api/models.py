@@ -12,16 +12,16 @@ class MLModel(models.Model):
         return f"{self.name} v{self.version}"
 
 class Prediction(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)  # Relasi ke User
-    model_id = models.CharField(max_length=255)  # ID model yang digunakan
-    jenis_malaria = models.CharField(max_length=255)  # Jenis malaria (Plasmodium, Vivax, dll.)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    model = models.ForeignKey(MLModel, on_delete=models.CASCADE, null=True, blank=True)
+    jenis_malaria = models.CharField(max_length=255, null=True, blank=True)  # Jenis malaria (Plasmodium, Vivax, dll.)
     created_at = models.DateTimeField(auto_now_add=True)  # Timestamp otomatis saat dibuat
 
     def __str__(self):
-        return f"{self.user.username} - {self.jenis_malaria} ({self.model_id})"
+        return f"{self.user.username} - {self.jenis_malaria} ({self.model})"
 
 class Compound(models.Model):
-    prediction_id = models.ForeignKey(Prediction, on_delete=models.CASCADE, null=True, blank=True)
+    prediction = models.ForeignKey(Prediction, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=255, null=True, blank=True)  # Nullable and optional
     cid = models.CharField(max_length=50, null=True, blank=True)  # Nullable and optional
     smiles = models.TextField(null=True, blank=True)  # Unique identifier

@@ -97,15 +97,13 @@ This API provides authentication, compound prediction, and user management featu
 
 ## Base URL
 ```
-http://https://malaria-757983837468.asia-east1.run.app/
+https://antimalaria-backend-production.up.railway.app/
 ```
 
 ## Authentication
 This API uses JWT authentication.
 - Obtain tokens via `/login/`
 - Refresh tokens via `/refresh-token/`
-- Google authentication via `/google-login/`
-
 ---
 
 ## Endpoints
@@ -177,33 +175,7 @@ POST /refresh-token/
 
 ---
 
-### 4. Google Login
-**Endpoint:**
-```
-POST /google-login/
-```
-**Request Body:**
-```json
-{
-  "id_token": "your_google_id_token"
-}
-```
-**Response:**
-```json
-{
-  "message": "Login successful",
-  "access": "your_access_token",
-  "refresh": "your_refresh_token",
-  "user": {
-    "email": "user@example.com",
-    "name": "User Name",
-  }
-}
-```
-
----
-
-### 5. Get List of Compounds Library
+### 4. Get List of Compounds Library (Not Created from Predictions)
 **Endpoint:**
 ```
 GET /compounds/
@@ -212,25 +184,27 @@ GET /compounds/
 ```json
 [
   {
-    "iupac_name": "Compound Name",
-    "smiles": "Compound SMILES",
-    "cid": "Compound CID",
-    "ic50": "IC50",
-    "category": "Compound Category"
+    "id": 1,
+    "iupac_name": "ethene",
+    "smiles": "C=C",
+    "cid": 6325,
+    "ic50": 4.262408256530762,
+    "category": "Inactive",
   },
   {
-    "iupac_name": "Compound Name",
-    "smiles": "Compound SMILES",
-    "cid": "Compound CID",
-    "ic50": "IC50",
-    "category": "Compound Category"
+    "id": 2,
+    "iupac_name": "ethene",
+    "smiles": "C=C",
+    "cid": 6325,
+    "ic50": 4.262408256530762,
+    "category": "Inactive",
   }
 ]
 ```
 
 ---
 
-### 6. Get List of Predictions
+### 5. Get List of Predictions
 **Endpoint:**
 ```
 GET /predictions/
@@ -245,22 +219,24 @@ Authorization: Bearer your_access_token
   {
     "id": 1,
     "user": "your_username",
-    "model_id": 1,
-    "jenis_malaria": "default"
+    "model": "model_name",
+    "jenis_malaria": "default",
+    "created_at": "timestamps"
   },
 
   {
     "id": 2,
     "user": "your_username",
-    "model_id": 1,
-    "jenis_malaria": "default"
+    "model": "model_name",
+    "jenis_malaria": "default",
+    "created_at": "timestamps"
   }
 ]
 ```
 
 ---
 
-### 7. Get Details of a Prediction
+### 6. Get Details of Prediction Compounds (Compounds input from the Predictions)
 **Endpoint:**
 ```
 GET /predictions/<int:prediction_id>/
@@ -273,28 +249,30 @@ Authorization: Bearer your_access_token
 ```json
 [
   {
-    "iupac_name": "Compound Name",
-    "smiles": "Compound SMILES",
-    "cid": "Compound CID",
-    "ic50": "IC50",
-    "category": "Compound Category"
+    "id": 1,
+    "iupac_name": "ethene",
+    "smiles": "C=C",
+    "cid": 6325,
+    "ic50": 4.262408256530762,
+    "category": "Inactive",
   },
   {
-    "iupac_name": "Compound Name",
-    "smiles": "Compound SMILES",
-    "cid": "Compound CID",
-    "ic50": "IC50",
-    "category": "Compound Category"
+    "id": 2,
+    "iupac_name": "ethene",
+    "smiles": "C=C",
+    "cid": 6325,
+    "ic50": 4.262408256530762,
+    "category": "Inactive",
   }
 ]
 ```
 
 ---
 
-### 8. Get Compound Details
+### 7. Get Compound Details
 **Endpoint:**
 ```
-GET /predictions/<int:prediction_id>/compounds/<int:compound_id>/
+GET /compounds/<int:compound_id>/
 ```
 **Headers:**
 ```
@@ -303,24 +281,31 @@ Authorization: Bearer your_access_token
 **Response:**
 ```json
 {
-    "iupac_name": "Compound IUPAC Name",
-    "smiles": "SMILES",
-    "cid": "Compound CID",
-    "ic50": "IC50",
-    "category": "Category",
-    "molecular_formula": "Compound Molecular Formula",
-    "molecular_weight": "Compound Molecular Weight",
-    "synonyms": "Compound Synonyms",
-    "inchi": "Compound InChI",
-    "inchikey": "Compound InChIKey",
-    "structure_image": "Compound Structure Image",
-    "description": "Compound Description"
+  "id": 1,
+  "iupac_name": "ethene",
+  "smiles": "C=C",
+  "cid": 6325,
+  "ic50": 4.262408256530762,
+  "category": "Inactive",
+  "molecular_formula": "C2H4",
+  "molecular_weight": "28.05",
+  "synonyms": "ETHYLENE, Ethene, Acetene, Elayl, Olefiant gas, 74-85-1, Athylen, Etileno, Bicarburretted hydrogen, Liquid ethylene, Ethylene, pure, Caswell No. 436, Aethylen, ...",
+  "inchi": "InChI=1S/C2H4/c1-2/h1-2H2",
+  "inchikey": "VGGSQFUCUMXWEO-UHFFFAOYSA-N",
+  "structure_image": "https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=6325&t=l",
+  "description": "Ethene is an alkene and a gas molecular entity. It has a role as a refrigerant and a plant hormone."
 }
 ```
 
 ---
 
-### 9. Predict IC50 for a Compound
+### 8. Predict IC50 for a Compound
+
+**Currently Supported Models:**
+- Deep Learning, ECFP: model_ECFP_DL.h5 -> model = 1
+- Random Forest, ECFP: rf_model_ecfp.pkl -> model = 2
+- XGBoost, ECFP: xgb_model_ecfp.json -> model = 3
+
 **Endpoint:**
 ```
 POST /predict/
@@ -332,18 +317,42 @@ Authorization: Bearer your_access_token
 **Request Body:**
 ```json
 {
-  "smiles": "CCO"
+  "smiles": "C=C",
+  "model": "model",
 }
 ```
 **Response:**
 ```json
 [
   {
-    "iupac_name": "Compound Name",
-    "smiles": "CCO",
-    "cid": "12345",
-    "ic50": 7.5,
-    "category": "Moderately Active"
-  }
+    "id": 1,
+    "iupac_name": "ethene",
+    "smiles": "C=C",
+    "cid": 6325,
+    "ic50": 4.262408256530762,
+    "category": "Inactive",
+    "molecular_formula": "C2H4",
+    "molecular_weight": "28.05",
+    "synonyms": "ETHYLENE, Ethene, Acetene, Elayl, Olefiant gas, 74-85-1, Athylen, Etileno, Bicarburretted hydrogen, Liquid ethylene, Ethylene, pure, Caswell No. 436, Aethylen, ...",
+    "inchi": "InChI=1S/C2H4/c1-2/h1-2H2",
+    "inchikey": "VGGSQFUCUMXWEO-UHFFFAOYSA-N",
+    "structure_image": "https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=6325&t=l",
+    "description": "Ethene is an alkene and a gas molecular entity. It has a role as a refrigerant and a plant hormone."
+  },
+  {
+    "id": 1,
+    "iupac_name": "ethene",
+    "smiles": "C=C",
+    "cid": 6325,
+    "ic50": 4.262408256530762,
+    "category": "Inactive",
+    "molecular_formula": "C2H4",
+    "molecular_weight": "28.05",
+    "synonyms": "ETHYLENE, Ethene, Acetene, Elayl, Olefiant gas, 74-85-1, Athylen, Etileno, Bicarburretted hydrogen, Liquid ethylene, Ethylene, pure, Caswell No. 436, Aethylen, ...",
+    "inchi": "InChI=1S/C2H4/c1-2/h1-2H2",
+    "inchikey": "VGGSQFUCUMXWEO-UHFFFAOYSA-N",
+    "structure_image": "https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=6325&t=l",
+    "description": "Ethene is an alkene and a gas molecular entity. It has a role as a refrigerant and a plant hormone."
+  },
 ]
 ```

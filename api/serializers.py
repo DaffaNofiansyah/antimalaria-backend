@@ -5,23 +5,29 @@ from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+
 class CompoundSerializer(serializers.ModelSerializer):
     class Meta:
         model = Compound
-        fields = '__all__'  # Or list specific fields if needed
+        fields = '__all__'
+
 
 class CompoundListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Compound
-        fields = '__all__'
+        fields = ('id', 'iupac_name', 'smiles', 'cid', 'ic50', 'category')
+
 
 class CompoundDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Compound
         fields = '__all__'
 
+
 class PredictionSerializer(serializers.ModelSerializer):
-    compounds = CompoundSerializer(many=True, read_only=True)  # To include related compounds
+    # Returns user's full name
+    user = serializers.CharField(source='user.username', read_only=True)
+    model = serializers.CharField(source='model.name', read_only=True)
 
     class Meta:
         model = Prediction
@@ -45,7 +51,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         validated_data.pop('password2')
         user = User.objects.create_user(**validated_data)
         return user
-    
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
