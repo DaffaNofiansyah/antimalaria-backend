@@ -2,7 +2,9 @@ from django.db import models
 from django.contrib.auth.models import User  # Import User model
 
 class MLModel(models.Model):
-    name = models.CharField(max_length=255)  # Nama model ML
+    name = models.CharField(max_length=255, null=True, blank=True)  # Nullable and optional
+    method = models.CharField(max_length=255, null=True, blank=True)  # Nullable and optional
+    descriptor= models.CharField(max_length=255, null=True, blank=True)  # Nullable and optional
     version = models.CharField(max_length=50)  # Versi model
     file_path = models.CharField(max_length=255, null=True, blank=True)
     training_date = models.DateTimeField()  # Tanggal pelatihan model

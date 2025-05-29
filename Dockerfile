@@ -13,6 +13,7 @@ COPY . /app/
 # Create the directory for ML models
 RUN mkdir -p /app/ml_models
 
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Function to download large Google Drive files
@@ -21,7 +22,6 @@ RUN mkdir -p /app/ml_models && \
     gdown --id 1CrW2-Nj7m8ft8vc29u_qXOYd-zqs6x8A -O /app/ml_models/rf_model_ecfp.pkl && \
     gdown --id 1a7z6dwKpvjOnK_u8mX1Lb9QVeLQZLmt7 -O /app/ml_models/xgb_model_ecfp.json
 
-# Install dependencies
 
 # Expose the port the app will run on
 EXPOSE 8080
