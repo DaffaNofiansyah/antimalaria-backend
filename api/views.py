@@ -1,7 +1,7 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from .models import Compound, Prediction, MLModel
-from .serializers import CompoundListSerializer, CompoundDetailSerializer, RegisterSerializer, PredictionSerializer, CustomTokenObtainPairSerializer
+from .serializers import CompoundSerializer, RegisterSerializer, PredictionSerializer, CustomTokenObtainPairSerializer
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .utils import predict_ic50
@@ -20,7 +20,7 @@ import io
 
 class CompoundBaseView(generics.ListAPIView):
     permission_classes = [AllowAny]
-    serializer_class = CompoundListSerializer
+    serializer_class = CompoundSerializer
 
     def get_queryset(self):
         return Compound.objects.select_related("prediction").filter(prediction=None)
@@ -34,9 +34,9 @@ class PredictionListView(generics.ListAPIView):
             return Prediction.objects.select_related("user", "model").all()
         return Prediction.objects.select_related("user", "model").filter(user=self.request.user)
 
-class CompoundListView(generics.ListAPIView):
+class PredictionDetailView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = CompoundListSerializer
+    serializer_class = CompoundSerializer
 
     def get_queryset(self):
         prediction_id = self.kwargs.get('prediction_id')  # Get from URL params
@@ -54,7 +54,7 @@ class CompoundListView(generics.ListAPIView):
 # Detail view: return all compound data
 class CompoundDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = CompoundDetailSerializer
+    serializer_class = CompoundSerializer
 
     def get_object(self):
         queryset = Compound.objects.all()
@@ -276,5 +276,74 @@ class StatisticsView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+class CompoundDeleteView(generics.DestroyAPIView):
+    """
+    API view to delete a Compound instance.
+    Requires authentication.
+    The 'compound_id' in the URL will be used for lookup.
+    """
+    permission_classes = [IsAuthenticated] # Or your custom permissions
+    lookup_field = 'id'
+    lookup_url_kwarg = 'compound_id' # This must match <int:compound_id> in urls.py
+
+    def get_queryset(self):
+        """
+        This method is called to get the base queryset for the view.
+        Ensure your Compound model is imported correctly.
+        """
+        # Make sure to import your Compound model correctly from your app's models.py
+        # from .models import Compound # Example: from myapp.models import Compound
+        return Compound.objects.all()
+
+    def perform_destroy(self, instance):
+        """
+        Called when deleting an instance.
+        Default behavior is instance.delete().
+        You can add custom logic here if needed.
+        """
+        # Example: Log the deletion
+        # print(f"Deleting Compound: {instance.id} (Name: {instance.name}) by user {self.request.user}")
+        super().perform_destroy(instance)
+        # No need to manually handle Prediction deletion here, as a Compound is standalone or linked from Prediction.
+
+class PredictionDeleteView(generics.DestroyAPIView):
+    """
+    API view to delete a Prediction instance.
+    Deleting a Prediction will also delete associated Compound objects
+    due to on_delete=models.CASCADE in the Compound.prediction ForeignKey.
+    Requires authentication.
+    The 'prediction_id' in the URL will be used for lookup.
+    """
+    permission_classes = [IsAuthenticated] # Or your custom permissions
+    lookup_field = 'id'
+    lookup_url_kwarg = 'prediction_id' # This must match <int:prediction_id> in urls.py
+
+    def get_queryset(self):
+        """
+        This method is called to get the base queryset for the view.
+        Ensure your Prediction model is imported correctly.
+        """
+        # Make sure to import your Prediction model correctly from your app's models.py
+        # from .models import Prediction # Example: from myapp.models import Prediction
+        return Prediction.objects.all()
+
+    def perform_destroy(self, instance):
+        """
+        Called when deleting an instance.
+        Default behavior is instance.delete().
+        Associated Compound objects are deleted automatically by the database
+        due to `on_delete=models.CASCADE` on the `Compound.prediction` ForeignKey.
+        """
+        # Example: Log the deletion
+        # print(f"Deleting Prediction: {instance.id} (Jenis: {instance.jenis_malaria}) by user {self.request.user}")
+        # print(f"Associated compounds for prediction {instance.id} will also be deleted due to on_delete=CASCADE.")
+        super().perform_destroy(instance)
 
 
+class CompoundListView(generics.ListAPIView):
+    serializer_class = CompoundSerializer
+    permission_classes = [IsAuthenticated]
+    def get_queryset(self):
+        if self.request.user.is_authenticated:
+            return Compound.objects.filter(prediction__user=self.request.user).distinct().order_by('-created_at')
+        return Compound.objects.none()
