@@ -178,7 +178,7 @@ POST /refresh-token/
 ### 4. Get List of Compounds Library (Not Created from Predictions)
 **Endpoint:**
 ```
-GET /compounds/
+GET /compounds/base/
 ```
 **Response:**
 ```json
@@ -190,6 +190,13 @@ GET /compounds/
     "cid": 6325,
     "ic50": 4.262408256530762,
     "category": "Inactive",
+    "molecular_formula": "C2H4",
+    "molecular_weight": "28.05",
+    "synonyms": "ETHYLENE, Ethene, Acetene, Elayl, Olefiant gas, 74-85-1, Athylen, Etileno, Bicarburretted hydrogen, Liquid ethylene, Ethylene, pure, Caswell No. 436, Aethylen, ...",
+    "inchi": "InChI=1S/C2H4/c1-2/h1-2H2",
+    "inchikey": "VGGSQFUCUMXWEO-UHFFFAOYSA-N",
+    "structure_image": "https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=6325&t=l",
+    "description": "Ethene is an alkene and a gas molecular entity. It has a role as a refrigerant and a plant hormone."
   },
   {
     "id": 2,
@@ -198,13 +205,65 @@ GET /compounds/
     "cid": 6325,
     "ic50": 4.262408256530762,
     "category": "Inactive",
+    "molecular_formula": "C2H4",
+    "molecular_weight": "28.05",
+    "synonyms": "ETHYLENE, Ethene, Acetene, Elayl, Olefiant gas, 74-85-1, Athylen, Etileno, Bicarburretted hydrogen, Liquid ethylene, Ethylene, pure, Caswell No. 436, Aethylen, ...",
+    "inchi": "InChI=1S/C2H4/c1-2/h1-2H2",
+    "inchikey": "VGGSQFUCUMXWEO-UHFFFAOYSA-N",
+    "structure_image": "https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=6325&t=l",
+    "description": "Ethene is an alkene and a gas molecular entity. It has a role as a refrigerant and a plant hormone."
+  }
+]
+```
+
+### 5. Get List of User Predicted Compounds
+**Endpoint:**
+```
+GET /compounds/
+```
+**Headers:**
+```
+Authorization: Bearer your_access_token
+```
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "iupac_name": "ethene",
+    "smiles": "C=C",
+    "cid": 6325,
+    "ic50": 4.262408256530762,
+    "category": "Inactive",
+    "molecular_formula": "C2H4",
+    "molecular_weight": "28.05",
+    "synonyms": "ETHYLENE, Ethene, Acetene, Elayl, Olefiant gas, 74-85-1, Athylen, Etileno, Bicarburretted hydrogen, Liquid ethylene, Ethylene, pure, Caswell No. 436, Aethylen, ...",
+    "inchi": "InChI=1S/C2H4/c1-2/h1-2H2",
+    "inchikey": "VGGSQFUCUMXWEO-UHFFFAOYSA-N",
+    "structure_image": "https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=6325&t=l",
+    "description": "Ethene is an alkene and a gas molecular entity. It has a role as a refrigerant and a plant hormone."
+  },
+  {
+    "id": 2,
+    "iupac_name": "ethene",
+    "smiles": "C=C",
+    "cid": 6325,
+    "ic50": 4.262408256530762,
+    "category": "Inactive",
+    "molecular_formula": "C2H4",
+    "molecular_weight": "28.05",
+    "synonyms": "ETHYLENE, Ethene, Acetene, Elayl, Olefiant gas, 74-85-1, Athylen, Etileno, Bicarburretted hydrogen, Liquid ethylene, Ethylene, pure, Caswell No. 436, Aethylen, ...",
+    "inchi": "InChI=1S/C2H4/c1-2/h1-2H2",
+    "inchikey": "VGGSQFUCUMXWEO-UHFFFAOYSA-N",
+    "structure_image": "https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=6325&t=l",
+    "description": "Ethene is an alkene and a gas molecular entity. It has a role as a refrigerant and a plant hormone."
   }
 ]
 ```
 
 ---
 
-### 5. Get List of Predictions
+### 6. Get List of User Predictions
 **Endpoint:**
 ```
 GET /predictions/
@@ -236,7 +295,7 @@ Authorization: Bearer your_access_token
 
 ---
 
-### 6. Get Details of Prediction Compounds (Compounds input from the Predictions)
+### 7. Get Prediction Compounds 
 **Endpoint:**
 ```
 GET /predictions/<int:prediction_id>/
@@ -255,6 +314,13 @@ Authorization: Bearer your_access_token
     "cid": 6325,
     "ic50": 4.262408256530762,
     "category": "Inactive",
+    "molecular_formula": "C2H4",
+    "molecular_weight": "28.05",
+    "synonyms": "ETHYLENE, Ethene, Acetene, Elayl, Olefiant gas, 74-85-1, Athylen, Etileno, Bicarburretted hydrogen, Liquid ethylene, Ethylene, pure, Caswell No. 436, Aethylen, ...",
+    "inchi": "InChI=1S/C2H4/c1-2/h1-2H2",
+    "inchikey": "VGGSQFUCUMXWEO-UHFFFAOYSA-N",
+    "structure_image": "https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=6325&t=l",
+    "description": "Ethene is an alkene and a gas molecular entity. It has a role as a refrigerant and a plant hormone."
   },
   {
     "id": 2,
@@ -263,13 +329,20 @@ Authorization: Bearer your_access_token
     "cid": 6325,
     "ic50": 4.262408256530762,
     "category": "Inactive",
+    "molecular_formula": "C2H4",
+    "molecular_weight": "28.05",
+    "synonyms": "ETHYLENE, Ethene, Acetene, Elayl, Olefiant gas, 74-85-1, Athylen, Etileno, Bicarburretted hydrogen, Liquid ethylene, Ethylene, pure, Caswell No. 436, Aethylen, ...",
+    "inchi": "InChI=1S/C2H4/c1-2/h1-2H2",
+    "inchikey": "VGGSQFUCUMXWEO-UHFFFAOYSA-N",
+    "structure_image": "https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=6325&t=l",
+    "description": "Ethene is an alkene and a gas molecular entity. It has a role as a refrigerant and a plant hormone."
   }
 ]
 ```
 
 ---
 
-### 7. Get Compound Details
+### 8. Get Compound Details
 **Endpoint:**
 ```
 GET /compounds/<int:compound_id>/
@@ -293,18 +366,58 @@ Authorization: Bearer your_access_token
   "inchi": "InChI=1S/C2H4/c1-2/h1-2H2",
   "inchikey": "VGGSQFUCUMXWEO-UHFFFAOYSA-N",
   "structure_image": "https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=6325&t=l",
-  "description": "Ethene is an alkene and a gas molecular entity. It has a role as a refrigerant and a plant hormone."
+  "description": "Ethene is an alkene and a gas molecular entity. It has a role as a refrigerant and a plant hormone.",
+  "prediction": 1
 }
+```
+
+### 9. Get Delete Prediction
+**Endpoint:**
+```
+DELETE /predictions/<int:prediction_id>/delete
+```
+**Headers:**
+```
+Authorization: Bearer your_access_token
+```
+
+### 10. Get Delete Compound
+**Endpoint:**
+```
+DELETE /compounds/<int:compound_id>/delete
+```
+**Headers:**
+```
+Authorization: Bearer your_access_token
 ```
 
 ---
 
-### 8. Predict IC50 for a Compound
+### 11. Predict IC50 for a Compound
 
-**Currently Supported Models:**
-- Deep Learning, ECFP: model_ECFP_DL.h5 -> model = 1
-- Random Forest, ECFP: rf_model_ecfp.pkl -> model = 2
-- XGBoost, ECFP: xgb_model_ecfp.json -> model = 3
+**🔹 ECFP Models**
+- **Deep Learning, ECFP**  
+  `model_ECFP_DL.h5` → `model_descriptor = ecfp`, `model_method = dl`  
+- **Random Forest, ECFP**  
+  `rf_model_ecfp.pkl` → `model_descriptor = ecfp`, `model_method = rf`  
+- **XGBoost, ECFP**  
+  `xgb_model_ecfp.json` → `model_descriptor = ecfp`, `model_method = xgb`  
+
+**🔹 MACCS Models**
+- **Deep Learning, MACCS**  
+  `model_MACCS_DL.h5` → `model_descriptor = maccs`, `model_method = dl`  
+- **Random Forest, MACCS**  
+  `rf_model_maccs.pkl` → `model_descriptor = maccs`, `model_method = rf`  
+- **XGBoost, MACCS**  
+  `xgb_model_maccs.json` → `model_descriptor = maccs`, `model_method = xgb`  
+
+**🔹 PubchemFP Models**
+- **Deep Learning, Mordred**
+  `model_PubchemFp_DL.h5` → `model_descriptor = pubchemfp`, `model_method = dl`  
+- **Random Forest, Mordred**  
+  `rf_model_pubchemfp.pkl` → `model_descriptor = pubchemfp`, `model_method = rf`  
+- **XGBoost, Mordred**  
+  `xgb_model_pubchemfp.json` → `model_descriptor = pubchemfp`, `model_method = xgb` 
 
 **Endpoint:**
 ```
@@ -317,8 +430,15 @@ Authorization: Bearer your_access_token
 **Request Body:**
 ```json
 {
-  "smiles": "C=C",
-  "model": "model",
+  "smiles": "C=C, CHO, H2O, ..",
+  "model_descriptor": "model_descriptor",
+  "model_method": "model_method"
+}
+OR
+{
+  "file": ".csv/.json",
+  "model_descriptor": "model_descriptor",
+  "model_method": "model_method"
 }
 ```
 **Response:**
