@@ -1,20 +1,29 @@
 from rest_framework import generics, status
+from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from .models import Compound, Prediction, MLModel
 from .serializers import CompoundSerializer, RegisterSerializer, PredictionSerializer, CustomTokenObtainPairSerializer
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from .utils import predict_ic50
+# from .utils import predict_ic50
 import requests
 import pubchempy as pcp
 from django.http import Http404
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import PermissionDenied
-from django.db import transaction
+from django.db import transaction, IntegrityError
 import csv
 import io
+import environ
+from pathlib import Path
+# from .utils import predict_ic50
+import time # Import time
+import logging # Import logging
+LOGGER = logging.getLogger(__name__)
 
+env = environ.Env()
+environ.Env.read_env(Path(__file__).resolve().parent.parent / '.env')
 
 # Create your views here.
 
@@ -89,113 +98,153 @@ class RegisterView(generics.GenericAPIView):
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     
+from .utils import predict_batch_ic50 # Import the new batch function
+
 class PredictIC50View(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        view_start_time = time.perf_counter()
+
         user = request.user
         csv_file = request.FILES.get("file", None)
         smiles_input = request.data.get("smiles", None)
         model_descriptor = request.data.get("model_descriptor", None)
         model_method = request.data.get("model_method", None)
 
+        # Validate required parameters
+        if not all([model_descriptor, model_method]):
+            return Response(
+                {"error": "model_descriptor and model_method are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # Fetch MLModel in one query
         ml_model = get_object_or_404(MLModel, method=model_method, descriptor=model_descriptor)
 
+        parse_start_time = time.perf_counter()
         smiles_list = []
-
         if csv_file:
             if not csv_file.name.endswith(".csv"):
                 return Response({"error": "Only CSV files are supported."}, status=status.HTTP_400_BAD_REQUEST)
-
             try:
                 decoded_file = csv_file.read().decode("utf-8-sig")
                 io_string = io.StringIO(decoded_file)
                 reader = csv.reader(io_string)
-                for row in reader:
-                    if row:  # skip empty rows
-                        smiles_list.append(row[0].strip())
+                # Assumes SMILES is in the first column
+                smiles_list = [row[0].strip() for row in reader if row and row[0].strip()]
             except Exception as e:
                 return Response({"error": f"Failed to parse CSV: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
         elif smiles_input:
             if isinstance(smiles_input, str):
-                smiles_list = [smiles.strip() for smiles in smiles_input.split(",") if smiles.strip()]
+                smiles_list = [s.strip() for s in smiles_input.split(",") if s.strip()]
             elif isinstance(smiles_input, list):
-                smiles_list = [smiles.strip() for smiles in smiles_input]
+                smiles_list = [s.strip() for s in smiles_input if isinstance(s, str) and s.strip()]
             else:
-                return Response({"error": "Invalid input format. Provide a list, string, or a CSV file."}, status=status.HTTP_400_BAD_REQUEST)
-
+                return Response({"error": "SMILES input must be a comma-separated string or a list of strings."}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response({"error": "Provide either SMILES or a CSV file."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Provide either a 'smiles' field or a 'file' (CSV)."}, status=status.HTTP_400_BAD_REQUEST)
+        parse_end_time = time.perf_counter()
+        LOGGER.info(f"[TIMING] Input parsing and validation: {(parse_end_time - parse_start_time) * 1000:.4f} ms")
 
-        # Step 1: Create a Prediction entry
-        prediction = Prediction.objects.create(user=user, model=ml_model, jenis_malaria="default")
+        if not smiles_list:
+            return Response({"error": "No valid SMILES strings provided."}, status=status.HTTP_400_BAD_REQUEST)
 
-        results = []
-        compounds_to_create = []
-
-        # Step 2: Process all SMILES
-        for smiles in smiles_list:
-            ic50 = predict_ic50(smiles, ml_model.name, model_method, model_descriptor)  # Get predicted IC50
-
-            if ic50 is None:
-                results.append({"smiles": smiles, "error": "Invalid SMILES string"})
-                continue  # Skip to next
-
-            # Fetch compound data from PubChem
-            compound_data = self.fetch_pubchem_data(smiles)
-
-            # Determine activity category
-            category = (
-                "Highly Active" if ic50 > 8 else
-                "Moderately Active" if 7 < ic50 <= 8 else
-                "Weakly Active" if 6 < ic50 <= 7 else
-                "Inactive"
+        try:
+            # Call the single, powerful batch prediction function
+            prediction_call_start_time = time.perf_counter()
+            predictions = predict_batch_ic50(
+                smiles_list=smiles_list,
+                model_name=ml_model.name,
+                model_method=model_method,
+                model_descriptor=model_descriptor
             )
+            prediction_call_end_time = time.perf_counter()
+            LOGGER.info(f"[TIMING] 'predict_batch_ic50' call from view: {(prediction_call_end_time - prediction_call_start_time) * 1000:.4f} ms")
+            # Format the results
 
-            # Prepare compound for bulk insert
-            compounds_to_create.append(Compound(
-                prediction=prediction,
-                name=compound_data.get("name", ""),
-                smiles=smiles,
-                cid=compound_data.get("cid", None),
-                ic50=ic50,
-                category=category,
-                molecular_formula=compound_data.get("molecular_formula", ""),
-                molecular_weight=compound_data.get("molecular_weight", ""),
-                iupac_name=compound_data.get("iupac_name", ""),
-                synonyms=compound_data.get("synonyms", ""),
-                inchi=compound_data.get("inchi", ""),
-                inchikey=compound_data.get("inchikey", ""),
-                structure_image=compound_data.get("structure_image", ""),
-                description=compound_data.get("description", ""),
-            ))
+            response_format_start_time = time.perf_counter()
+            results = [{"smiles": smiles, "ic50": ic50} for smiles, ic50 in zip(smiles_list, predictions)]
+            response_format_end_time = time.perf_counter()
+            LOGGER.info(f"[TIMING] Final response formatting: {(response_format_end_time - response_format_start_time) * 1000:.4f} ms")
 
-        # Step 3: Bulk insert compounds to minimize DB queries
-        with transaction.atomic():
-            Compound.objects.bulk_create(compounds_to_create)
+            view_end_time = time.perf_counter()
+            LOGGER.info(f"[TIMING] Total view processing time (end-to-end): {(view_end_time - view_start_time) * 1000:.4f} ms")
 
-        # Convert inserted compounds into response format
-        for compound in compounds_to_create:
-            results.append({
-                "id": compound.id,
-                "iupac_name": compound.iupac_name,
-                "smiles": compound.smiles,
-                "cid": compound.cid,
-                "ic50": compound.ic50,
-                "category": compound.category,
-                "molecular_formula": compound.molecular_formula,
-                "molecular_weight": compound.molecular_weight,
-                "synonyms": compound.synonyms,
-                "inchi": compound.inchi,
-                "inchikey": compound.inchikey,
-                "structure_image": compound.structure_image,
-                "description": compound.description,
-            })
+            return Response({
+                "message": f"Prediction complete for {len(results)} SMILES.",
+                "results": results
+            }, status=status.HTTP_200_OK) # Use 200 OK for successful processing
+        
 
-        return Response(results, status=status.HTTP_201_CREATED)
+        except ValueError as e:
+            # Catches errors from utils like 'Model not found'
+            LOGGER.error(f"Prediction failed with ValueError: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+
+            
+        
+        # try:
+        #     response = requests.post(env('ML_SERVICE_URL'), json={
+        #         "smiles": smiles_list,
+        #         "model_name": ml_model.name,
+        #         "model_descriptor": model_descriptor,
+        #         "model_method": model_method
+        #     })
+        #     response.raise_for_status()  # Raise an error for bad responses
+        #     prediction_result = response.json()
+        # except requests.RequestException as e:
+        #     raise APIException(f"Failed to connect to prediction service: {e}")
+        # except ValueError:
+        #     raise APIException("Invalid JSON response from prediction service")
+
+        # try:
+        #     prediction_instance = Prediction.objects.create(
+        #         user=user,
+        #         model=ml_model,
+        #         jenis_malaria="default",
+        #     )
+        # except IntegrityError as e:
+        #     raise APIException(f"Failed to create prediction instance: {e}")
+
+        # compounds_to_create = []
+        # results = []
+
+        # for prediction in prediction_result:
+        #     compounds_to_create.append(
+        #         Compound(
+        #             prediction=prediction_instance,
+        #             **prediction,  # Unpack the prediction dictionary directly
+        #             # name=prediction.get("name", ""),
+        #             # smiles=prediction.get("smiles", ""),
+        #             # cid=prediction.get("cid", None),
+        #             # ic50=prediction.get("ic50", None),
+        #             # category=prediction.get("category", "Unknown"),
+        #             # molecular_formula=prediction.get("molecular_formula", ""),
+        #             # molecular_weight=prediction.get("molecular_weight", ""),
+        #             # iupac_name=prediction.get("iupac_name", ""),
+        #             # synonyms=prediction.get("synonyms", ""),
+        #             # inchi=prediction.get("inchi", ""),
+        #             # inchikey=prediction.get("inchikey", ""),
+        #             # structure_image=prediction.get("structure_image", ""),
+        #             # description=prediction.get("description", ""),
+        #         )
+        #     )
+            
+        # try:
+        #     with transaction.atomic():
+        #         Compound.objects.bulk_create(compounds_to_create)
+        # except IntegrityError as e:
+        #     raise APIException(f"Failed to save compound data: {e}")
+
+        return Response({
+            "message": "Prediction created successfully",
+            "prediction_id": prediction_instance.id,
+            "compounds": CompoundSerializer(compounds_to_create, many=True).data
+        }, status=status.HTTP_201_CREATED)
+    
     def fetch_pubchem_data(self, smiles):
         """Fetch compound data from PubChem and optimize API calls."""
         data = {
@@ -204,7 +253,7 @@ class PredictIC50View(APIView):
             "synonyms": None, "structure_image": None, "name": None,
             "category": None
         }
-        
+
         try:
             compounds = pcp.get_compounds(smiles, 'smiles')
             if compounds:
@@ -245,35 +294,6 @@ class PredictIC50View(APIView):
         except requests.RequestException as e:
             print(f"Error fetching description from PubChem: {e}")
         return None
-
-
-class StatisticsView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        total_predictions = Prediction.objects.filter(user=request.user).count()
-        total_compounds = Compound.objects.filter(prediction__user=request.user).count()
-        highly_active_count = Compound.objects.filter(prediction__user=request.user, category="Highly Active").count()
-        moderately_active_count = Compound.objects.filter(prediction__user=request.user, category="Moderately Active").count()
-        weakly_active_count = Compound.objects.filter(prediction__user=request.user, category="Weakly Active").count()
-        inactive_count = Compound.objects.filter(prediction__user=request.user, category="Inactive").count()
-        # avg_ic50 = Compound.objects.filter(prediction_id__user=request.user).aggregate(avg_ic50=Avg("ic50"))["avg_ic50"]
-
-        return Response({
-            "predictions": {
-                "total predictions": total_compounds,
-            },
-            "compounds": {
-                "total compounds": total_predictions,
-                "categories": {
-                    "active": highly_active_count,
-                    "moderately active": moderately_active_count,
-                    "weakly active": weakly_active_count,
-                    "inactive": inactive_count
-                },
-            },
-            # "average_ic50": avg_ic50,
-        }, status=status.HTTP_200_OK)
 
 
 class CompoundDeleteView(generics.DestroyAPIView):
@@ -347,3 +367,22 @@ class CompoundListView(generics.ListAPIView):
         if self.request.user.is_authenticated:
             return Compound.objects.filter(prediction__user=self.request.user).distinct().order_by('-created_at')
         return Compound.objects.none()
+    
+# dummy view to check ttfb
+class HealthCheckView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response({"status": "ok"}, status=status.HTTP_200_OK)
+
+# db query health check
+class DBHealthCheckView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        try:
+            # Perform a simple query to check database connectivity
+            Compound.objects.count()
+            return Response({"status": "ok"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

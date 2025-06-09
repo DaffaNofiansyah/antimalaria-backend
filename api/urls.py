@@ -1,5 +1,4 @@
 from django.urls import path
-from django.contrib import admin
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -8,7 +7,6 @@ from rest_framework_simplejwt.views import (
 from . import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
     path('register/', views.RegisterView.as_view(), name='register'),
     path('login/', views.CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('refresh-token/', TokenRefreshView.as_view(), name='token_refresh'),
@@ -23,6 +21,7 @@ urlpatterns = [
     path("predictions/", views.PredictionListView.as_view(), name="prediction-list"),
     path("predictions/<int:prediction_id>/", views.PredictionDetailView.as_view(), name="prediction-detail"),
     path("predictions/<int:prediction_id>/delete/", views.PredictionDeleteView.as_view(), name="prediction-delete"),
-    
-    path("statistics/", views.StatisticsView.as_view(), name="statistics"),
+
+    path("health-check/", views.HealthCheckView.as_view(), name="health-check"),
+    path("db-health-check/", views.DBHealthCheckView.as_view(), name="db-health-check"),
 ]

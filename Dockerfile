@@ -28,6 +28,10 @@ RUN mkdir -p /app/ml_models && \
     gdown --id 1Ph3lYYpbi3fh0wsDZpcDpjsT9np4HrJj -O /app/ml_models/xgb_model_maccs.json && \
     gdown --id 10AklPAl-a0ukz4VYtVGE1rxx2D5iAk01 -O /app/ml_models/xgb_model_pubchemfp.json
 
+
+ENV PYTHONUNBUFFERED 1
+ENV DEBUG=False
+
 # Expose the port the app will run on
 EXPOSE 8080
 

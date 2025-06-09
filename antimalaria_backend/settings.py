@@ -15,9 +15,10 @@ import environ
 from datetime import timedelta
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -26,12 +27,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-85w-p8xml#zbk779xq+trdi)_+g)v7pswe$3@gje^md=wmz6qz'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = "False"
 
 ALLOWED_HOSTS = ['*']
 
 STATIC_URL = '/static/'
-
 
 # Application definition
 
@@ -76,7 +76,6 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
-
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
@@ -130,12 +129,6 @@ WSGI_APPLICATION = 'antimalaria_backend.wsgi.application'
 # }
 
 
-# Initialize environment variables
-env = environ.Env()
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
-
-# GOOGLE_CLIENT_ID = env('GOOGLE_CLIENT_ID')
-
 DATABASES = {
     'default': {
     'ENGINE': 'django.db.backends.postgresql',
@@ -147,17 +140,17 @@ DATABASES = {
     'OPTIONS': {
       'sslmode': 'require',
     },
-    'DISABLE_SERVER_SIDE_CURSORS': True,
+    # 'DISABLE_SERVER_SIDE_CURSORS': True,
   }
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),  # Token akses berlaku 1 hari
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Token refresh berlaku 7 hari
-    "ROTATE_REFRESH_TOKENS": True,  # Perbarui refresh token setelah digunakan
-    "BLACKLIST_AFTER_ROTATION": True,  # Blacklist refresh token lama setelah rotasi
-    "ALGORITHM": "HS256",  # Algoritma enkripsi
-    "SIGNING_KEY": SECRET_KEY,  # Gunakan SECRET_KEY sebagai kunci tanda tangan
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,
 }
 
 # Password validation
@@ -209,3 +202,31 @@ AUTHENTICATION_BACKENDS = (
 
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+# --- CELERY CONFIGURATION (Publisher) ---
+# The broker where messages are sent (RabbitMQ)
+CELERY_BROKER_URL = 'amqp://guest:guest@rabbitmq:5672//'
+# The backend for storing results (Redis)
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+
+# We don't need the worker to store results in the Django DB here.
+# The API service just needs to know the task state (PENDING, SUCCESS).
+CELERY_RESULT_EXTENDED = True
+
+# IMPORTANT: Tell the API service to just send the task and not worry about receiving the result.
+CELERY_IGNORE_RESULT = True
+CELERY_TASK_ALWAYS_EAGER = False # Make sure this is False for production
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO', # Set to INFO to see the timing logs
+    },
+}
