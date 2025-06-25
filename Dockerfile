@@ -18,9 +18,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Function to download large Google Drive files
 RUN mkdir -p /app/ml_models && \
-    gdown --id 1EPUuv43bMj2_vTEHGiL1H7sI4wDxYVeP -O /app/ml_models/model_ECFP_DL.h5 && \
-    gdown --id 1A8BN4ooopIZamiFjq1uv4J00Te7aNtip -O /app/ml_models/model_MACCS_DL.h5 && \
-    gdown --id 1YK3R3Sxy_uAvcML1o5knpDJ0-DtZ6jnX -O /app/ml_models/model_PubChemFp_DL.h5 && \
+    # gdown --id 1EPUuv43bMj2_vTEHGiL1H7sI4wDxYVeP -O /app/ml_models/model_ECFP_DL.h5 && \
+    # gdown --id 1A8BN4ooopIZamiFjq1uv4J00Te7aNtip -O /app/ml_models/model_MACCS_DL.h5 && \
+    # gdown --id 1YK3R3Sxy_uAvcML1o5knpDJ0-DtZ6jnX -O /app/ml_models/model_PubChemFp_DL.h5 && \
     gdown --id 1CrW2-Nj7m8ft8vc29u_qXOYd-zqs6x8A -O /app/ml_models/rf_model_ecfp.pkl && \
     gdown --id 1Vf7Avqz1Cv-XjaQL2tKgiIr1vnZA-Jus -O /app/ml_models/rf_model_maccs.pkl && \
     gdown --id 1p2VZrUDplkA6h25GR6K2MmEFtOFP9n__ -O /app/ml_models/rf_model_pubchemfp.pkl && \

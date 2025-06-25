@@ -9,7 +9,6 @@ from . import views
 urlpatterns = [
     path('register/', views.RegisterView.as_view(), name='register'),
     path('login/', views.CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('refresh-token/', TokenRefreshView.as_view(), name='token_refresh'),
 
     path("predict/", views.PredictIC50View.as_view(), name="predict"),
 
@@ -24,4 +23,5 @@ urlpatterns = [
 
     path("health-check/", views.HealthCheckView.as_view(), name="health-check"),
     path("db-health-check/", views.DBHealthCheckView.as_view(), name="db-health-check"),
+    path("pubchem-health-check/", views.PubChemHealthCheckView.as_view(), name="pubchem-health-check"),
 ]

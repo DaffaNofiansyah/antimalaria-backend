@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import tensorflow as tf
 import pickle
 import xgboost as xgb
 from rdkit import Chem, DataStructs
@@ -30,9 +29,7 @@ def load_all_models():
     for filename in os.listdir(MODEL_DIR):
         model_path = os.path.join(MODEL_DIR, filename)
         try:
-            if filename.endswith(".h5"):
-                model = tf.keras.models.load_model(model_path, compile=False)
-            elif filename.endswith(".pkl"):
+            if filename.endswith(".pkl"):
                 with open(model_path, "rb") as f:
                     model = pickle.load(f)
             elif filename.endswith(".json"):
@@ -131,11 +128,7 @@ def predict_batch_ic50(smiles_list, model_name, model_method, model_descriptor):
 
     # Step 3: Normalize and Predict on the entire batch
     pred_start_time = time.perf_counter()
-    if model_method == "dl":
-        # Reshape for DL model: (batch_size, num_features, 1)
-        fp_array = fp_array.reshape((fp_array.shape[0], fp_array.shape[1], 1))
-        predictions = model.predict(fp_array, verbose=0).flatten()
-    elif model_method == "rf":
+    if model_method == "rf":
         predictions = model.predict(fp_array)
     elif model_method == "xgb":
         dmatrix = xgb.DMatrix(fp_array, feature_names=XGB_FEATURE_NAMES)

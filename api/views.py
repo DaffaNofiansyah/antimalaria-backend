@@ -386,3 +386,50 @@ class DBHealthCheckView(APIView):
             return Response({"status": "ok"}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import requests
+
+
+class PubChemHealthCheckView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        # Placeholder compound names for testing
+        compound_cid = ["2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244", "2244"]
+        if not compound_cid:
+            return Response({"error": "No compound cid provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+        compound_str = ','.join(compound_cid)
+        try:
+            result = fetch_pubchem_batch(compound_str)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+import pprint
+def fetch_pubchem_batch(compound_str):
+    print(f"Fetching PubChem data for compounds: {compound_str}")
+    url = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/property/MolecularWeight,InChIKey/JSON"
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    data = {"cid": compound_str}
+    response = requests.post(url, headers=headers, data=data, timeout=15)
+    pprint.pprint(f"PubChem response: {response.json()}")
+    if response.status_code == 200:
+        parsed = response.json()
+        properties = parsed.get("PropertyTable", {}).get("Properties", [])
+        # Map results by compound name
+        result_map = {}
+        for item in properties:
+            name = item.get("IUPACName") or "Unknown"
+            result_map[name] = {
+                "MolecularWeight": item.get("MolecularWeight"),
+                "InChIKey": item.get("InChIKey")
+            }
+        return result_map
+    else:
+        raise Exception(f"PubChem API error: {response.status_code} - {response.text}")
+
+#
