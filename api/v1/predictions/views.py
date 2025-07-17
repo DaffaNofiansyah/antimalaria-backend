@@ -147,20 +147,36 @@ class PredictIC50View(APIView):
     )
     def post(self, request, *args, **kwargs):
         user = request.user
-        # # csv_file = request.FILES.get("file", None)
-        # # smiles_input = request.data.get("smiles", None)
-        # # model_descriptor = request.data.get("model_descriptor", None)
-        # # model_method = request.data.get("model_method", None)
+        csv_file = request.FILES.get("file", None)
+        smiles_input = request.data.get("smiles", None)
+        model_descriptor = request.data.get("model_descriptor", None)
+        model_method = request.data.get("model_method", None)
 
-        serializer = PredictionInputSerializer(data={**request.data, **request.FILES})
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # serializer = PredictionInputSerializer(data={**request.data, **request.FILES})
+        # if not serializer.is_valid():
+        #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        validated = serializer.validated_data
-        smiles_input = validated.get("smiles")
-        csv_file = validated.get("file")
-        model_method = validated.get("model_method")
-        model_descriptor = validated.get("model_descriptor")
+        # validated = serializer.validated_data
+        # smiles_input = validated.get("smiles")
+        # csv_file = validated.get("file")
+        # model_method = validated.get("model_method")
+        # model_descriptor = validated.get("model_descriptor")
+
+
+        errors = {}
+
+        # Validate required fields
+        if not model_method:
+            errors["model_method"] = ["This field is required."]
+        if not model_descriptor:
+            errors["model_descriptor"] = ["This field is required."]
+        if not smiles_input and not csv_file:
+            errors["input"] = ["Either 'smiles' or 'file' must be provided."]
+
+        # If errors, return
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
         smiles_list = []
 
         # Validate required parameters
@@ -171,7 +187,7 @@ class PredictIC50View(APIView):
             )
 
         # Fetch MLModel in one query
-        # ml_model = get_object_or_404(MLModel, method=model_method, descriptor=model_descriptor)
+        ml_model = get_object_or_404(MLModel, file_path="xgb_model_ecfp.json")
 
         smiles_list = []
         if csv_file:
@@ -215,7 +231,7 @@ class PredictIC50View(APIView):
             # 1. Create Prediction instance
             prediction = Prediction.objects.create(
                 user=user,
-                ml_model=4,
+                ml_model=ml_model,
                 status=Prediction.Status.COMPLETED,
                 input_source_type="csv" if csv_file else "text",
                 completed_at=timezone.now()  # Set completed_at to now
@@ -243,7 +259,19 @@ class PredictIC50View(APIView):
                 results.append({
                     "smiles": smiles,
                     "ic50": ic50,
-                    "compound": compound
+                    "compound": {
+                        "id": compound.id,
+                        "smiles": compound.smiles,
+                        "iupac_name": compound.iupac_name,
+                        "cid": compound.cid,
+                        "description": compound.description,
+                        "molecular_formula": compound.molecular_formula,
+                        "molecular_weight": compound.molecular_weight,
+                        "synonyms": compound.synonyms,
+                        "inchi": compound.inchi,
+                        "inchikey": compound.inchikey,
+                        "structure_image": compound.structure_image
+                    }
                 })
 
             return Response({
