@@ -168,20 +168,6 @@ DATABASES = {
     }
 }
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'neondb',
-#         'USER': 'neondb_owner',
-#         'PASSWORD': 'npg_Y4XJVH2WQRNz',
-#         'HOST': 'ep-billowing-sea-a1oxjnre-pooler.ap-southeast-1.aws.neon.tech',
-#         'PORT': 5432,
-#         'OPTIONS': {
-#             'sslmode': 'require',
-#         }
-#     }
-# }
-
 AUTH_USER_MODEL = 'api.CustomUser'
 
 SIMPLE_JWT = {
