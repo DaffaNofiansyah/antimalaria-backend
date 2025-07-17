@@ -1,12 +1,14 @@
 from rest_framework import serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-#import prediction models if needed
-from api.models import Compound, Prediction, PredictionCompound  # Adjust the import based on your actual model location
+from api.models import Compound, Prediction, PredictionCompound, MLModel
+class MLModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MLModel
+        fields = '__all__'  # Include all fields of the MLModel
 
 class CompoundSerializer(serializers.ModelSerializer):
     class Meta:
         model = Compound
-        exclude = ['id', 'created_at']
+        exclude = ['ic50', 'lelp', 'created_at']  # Exclude fields that are not needed in the serializer
 
 class PredictionCompoundSerializer(serializers.ModelSerializer):
     compound = CompoundSerializer(read_only=True)
@@ -17,6 +19,7 @@ class PredictionCompoundSerializer(serializers.ModelSerializer):
 
 class PredictionSerializer(serializers.ModelSerializer):
     prediction_compounds = PredictionCompoundSerializer(many=True, read_only=True)
+    ml_model = MLModelSerializer(read_only=True)
 
     class Meta:
         model = Prediction  # Replace with your actual prediction model
@@ -27,8 +30,7 @@ class PredictionSerializer(serializers.ModelSerializer):
             "status",
             "input_source_type",
             "created_at",
-            "completed_at",
-            "prediction_compounds"  # ⬅️ Put this at the bottom
+            "prediction_compounds"  # ⬅️ Put this at the bottom  
         ]
 
 class PredictionInputSerializer(serializers.Serializer):

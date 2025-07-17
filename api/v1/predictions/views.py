@@ -78,11 +78,11 @@ class PredictIC50View(APIView):
                         name="Prediction Success",
                         value={
                             "message": "Prediction complete and saved for 2 SMILES.",
-                            "prediction_id": 42,
                             "results": [
                                 {
                                     "smiles": "C=C", 
                                     "ic50": 0.00032,
+                                    "lelp": 0.5,  # Example LELP value
                                     "compound": 
                                     {
                                         "id": "1",
@@ -101,6 +101,7 @@ class PredictIC50View(APIView):
                                 {
                                     "smiles": "CCO",
                                     "ic50": 0.00213,
+                                    "lelp": 0.7,  # Example LELP value
                                     "compound": 
                                     {
                                         "id": "2",
@@ -259,6 +260,7 @@ class PredictIC50View(APIView):
                 results.append({
                     "smiles": smiles,
                     "ic50": ic50,
+                    "lelp": None,  # fill this if you calculate LELP
                     "compound": {
                         "id": compound.id,
                         "smiles": compound.smiles,
@@ -276,7 +278,6 @@ class PredictIC50View(APIView):
 
             return Response({
                 "message": f"Prediction complete and saved for {len(results)} SMILES.",
-                "prediction_id": prediction.id,
                 "results": results
             }, status=status.HTTP_200_OK)
         
