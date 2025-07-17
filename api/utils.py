@@ -1,231 +1,153 @@
 # import os
 # import numpy as np
-# import tensorflow as tf
-# from rdkit import Chem, DataStructs
-# from rdkit.Chem import AllChem
-
-# # Correct the model path
-# BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# MODEL_PATH = os.path.join(BASE_DIR, "ml_models", "model_ECFP_DL.h5")
-
-# # Load TensorFlow model
-# model = tf.keras.models.load_model(MODEL_PATH, compile=False)
-
-# def smiles_to_ecfp6(smiles, radius=3, n_bits=2048):
-#     """Converts a SMILES string to an ECFP6 fingerprint vector."""
-#     mol = Chem.MolFromSmiles(smiles)
-#     if mol is None:
-#         return None  # Invalid SMILES
-    
-#     fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=n_bits)
-    
-#     array = np.zeros((1, n_bits))
-#     DataStructs.ConvertToNumpyArray(fp, array[0])
-    
-#     return array.astype(np.float32)  # Ensure float32 for TensorFlow
-
-# def predict_ic50(smiles):
-#     """Predicts IC50 from a SMILES string using a pre-trained model."""
-#     fingerprint = smiles_to_ecfp6(smiles)
-    
-#     if fingerprint is None:
-#         return None  # Invalid SMILES
-
-#     prediction = model.predict(fingerprint)
-    
-#     return float(prediction[0][0])  # Convert to Python float
-
-
-# import os
-# import numpy as np
-# import tensorflow as tf
 # import pickle
 # import xgboost as xgb
 # from rdkit import Chem, DataStructs
-# from rdkit.Chem import AllChem
+# from rdkit.Chem import AllChem, MACCSkeys
+# import deepchem as dc
+# from functools import lru_cache
+# import time
+# import logging # Use logging instead of print for production apps
+# from concurrent.futures import ThreadPoolExecutor
 
-# # Define Base Model Path
+# # --- Configuration ---
 # BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # MODEL_DIR = os.path.join(BASE_DIR, "ml_models")
+# XGB_FEATURE_NAMES = [f"bit{i}" for i in range(2048)]
+# LOGGER = logging.getLogger(__name__)
 
-# # Global cache to store loaded models
-# MODEL_CACHE = {}
+# # --- Pre-loaded Models & Featurizers ---
+# MODELS = {}
+# PUBCHEM_FEATURIZER = dc.feat.PubChemFingerprint()
 
-# def load_model(model_name):
-#     """Load model from disk and cache it."""
-#     if model_name in MODEL_CACHE:
-#         return MODEL_CACHE[model_name]  # Return cached model
+# def load_all_models():
+#     """
+#     Finds and loads all supported model files from the MODEL_DIR.
+#     This function should be called ONCE when the app worker starts.
+#     """
+#     LOGGER.info("--- Loading all ML models into memory... ---")
+#     for filename in os.listdir(MODEL_DIR):
+#         model_path = os.path.join(MODEL_DIR, filename)
+#         try:
+#             if filename.endswith(".pkl"):
+#                 with open(model_path, "rb") as f:
+#                     model = pickle.load(f)
+#             elif filename.endswith(".json"):
+#                 model = xgb.Booster()
+#                 model.load_model(model_path)
+#             else:
+#                 continue # Skip unsupported files
 
-#     model_path = os.path.join(MODEL_DIR, model_name)
-    
-#     if model_name.endswith(".h5"):  # Deep Learning
-#         model = tf.keras.models.load_model(model_path, compile=False)
-#     elif model_name.endswith(".pkl"):  # Random Forest
-#         with open(model_path, "rb") as f:
-#             model = pickle.load(f)
-#     elif model_name.endswith(".json"):  # XGBoost
-#         model = xgb.Booster()
-#         model.load_model(model_path)
-#     else:
-#         raise ValueError("Unsupported model format")
+#             MODELS[filename] = model
+#             LOGGER.info(f"  [+] Loaded model: {filename}")
+#         except Exception as e:
+#             LOGGER.error(f"  [!] Failed to load model {filename}: {e}")
+#     LOGGER.info("--- Model loading complete. ---")
 
-#     MODEL_CACHE[model_name] = model  # Store in cache
-#     return model
 
-# def smiles_to_ecfp6(smiles, radius=3, n_bits=2048):
+# # --- Featurization Functions (with Caching) ---
+
+# # A map to simplify calling the correct featurizer
+# FEATURIZER_MAP = {
+#     "ecfp": lambda smiles: smiles_to_ecfp(smiles),
+#     "maccs": lambda smiles: smiles_to_maccs(smiles),
+#     "pubchemfp": lambda smiles: smiles_to_pubchemfp(smiles)
+# }
+
+# @lru_cache(maxsize=2048) # Increased cache size for batch operations
+# def smiles_to_ecfp(smiles, radius=3, n_bits=2048):
+#     """Convert a SMILES string to an ECFP6 fingerprint vector with caching."""
 #     mol = Chem.MolFromSmiles(smiles)
-#     if mol is None:
-#         raise ValueError("Invalid SMILES input!")  # Explicit error
-    
+#     if mol is None: return None
 #     fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=n_bits)
+#     array = np.zeros((n_bits,), dtype=np.float32) # Return a 1D array
+#     DataStructs.ConvertToNumpyArray(fp, array)
+#     return array
+
+# @lru_cache(maxsize=2048)
+# def smiles_to_maccs(smiles):
+#     """Convert SMILES to MACCS keys fingerprint with caching."""
+#     mol = Chem.MolFromSmiles(smiles)
+#     if not mol: return None
+#     fp = MACCSkeys.GenMACCSKeys(mol)
+#     array = np.zeros((166,), dtype=np.float32) # MACCS has 166 bits (1-166)
+#     # The first bit (index 0) is unused, so we convert the 167-bit vector
+#     DataStructs.ConvertToNumpyArray(fp, array)
+#     return array
+
+# @lru_cache(maxsize=2048)
+# def smiles_to_pubchemfp(smiles):
+#     """Convert SMILES to PubChem fingerprint with caching."""
+#     fingerprints = PUBCHEM_FEATURIZER.featurize(smiles)
+#     # Check if featurization was successful before accessing the array
+#     return fingerprints[0] if fingerprints.size > 0 else None
+
+# # --- Prediction Logic ---
+
+# def predict_batch_ic50(smiles_list, model_name, model_method, model_descriptor):
+#     """
+#     Predict IC50 for a batch of SMILES using a pre-loaded model.
+#     """
+
+#     overall_start_time = time.perf_counter()
+
+#     model = MODELS.get(model_name)
+#     if model is None:
+#         raise ValueError(f"Model '{model_name}' not found or failed to load.")
+
+#     # Step 1: Featurize all SMILES in a batch
+#     feat_start_time = time.perf_counter()
+#     featurizer = FEATURIZER_MAP.get(model_descriptor)
+#     if featurizer is None:
+#         raise ValueError("Unsupported model descriptor.")
     
-#     array = np.zeros((1, n_bits))
-#     DataStructs.ConvertToNumpyArray(fp, array[0])
+#     # Use a ThreadPoolExecutor to process featurization in parallel
+#     with ThreadPoolExecutor() as executor:
+#         # map() maintains the order of the input smiles_list
+#         results = list(executor.map(featurizer, smiles_list))
+
+#     fingerprints, valid_smiles, errors = [], [], {}
+#     for i, fp in enumerate(results):
+#         smiles = smiles_list[i]
+#         if fp is not None:
+#             fingerprints.append(fp)
+#             valid_smiles.append(smiles)
+#         else:
+#             errors[smiles] = "Invalid SMILES input"
+#         feat_end_time = time.perf_counter()
+#         LOGGER.info(f"[TIMING] Featurization loop for {len(smiles_list)} items: {(feat_end_time - feat_start_time) * 1000:.4f} ms")
     
-#     return array.astype(np.float32)  # Ensure float32 for TensorFlow
+#     if not fingerprints:
+#         return errors # Return only errors if no valid SMILES were found
 
-# def predict_ic50(smiles, model_name):
-#     """Predict IC50 based on a given SMILES and model name."""
-#     try:
-#         fingerprint = smiles_to_ecfp6(smiles)
-#     except ValueError as e:
-#         return {"error": str(e)}
+#     # Step 2: Stack fingerprints into a single NumPy array for batch prediction
+#     stack_start_time = time.perf_counter()
+#     fp_array = np.vstack(fingerprints)
+#     stack_end_time = time.perf_counter()
+#     LOGGER.info(f"[TIMING] NumPy stacking of {len(fingerprints)} fingerprints: {(stack_end_time - stack_start_time) * 1000:.4f} ms")
 
-#     model = load_model(model_name)
-
-#     if model_name.endswith(".h5"):  # TensorFlow
-#         prediction = model.predict(fingerprint)
-#         return float(prediction[0][0])
-#     elif model_name.endswith(".pkl"):  # Random Forest
-#         return float(model.predict(fingerprint)[0])
-#     elif model_name.endswith(".json"):  # XGBoost
-#         feature_names = [f"bit{i}" for i in range(fingerprint.shape[1])]
-#         dmatrix = xgb.DMatrix(fingerprint, feature_names=feature_names)
-#         return float(model.predict(dmatrix)[0])
+#     # Step 3: Normalize and Predict on the entire batch
+#     pred_start_time = time.perf_counter()
+#     if model_method == "rf":
+#         predictions = model.predict(fp_array)
+#     elif model_method == "xgb":
+#         dmatrix = xgb.DMatrix(fp_array, feature_names=XGB_FEATURE_NAMES)
+#         predictions = model.predict(dmatrix)
 #     else:
-#         raise ValueError("Unsupported model format")
+#         raise ValueError("Unsupported model method")
+#     pred_end_time = time.perf_counter()
+#     LOGGER.info(f"[TIMING] Model prediction on batch of size {fp_array.shape[0]}: {(pred_end_time - pred_start_time) * 1000:.4f} ms")
 
-
-import os
-import numpy as np
-import tensorflow as tf
-import pickle
-import xgboost as xgb
-import weakref
-from rdkit import Chem, DataStructs
-from rdkit.Chem import AllChem, MACCSkeys
-import deepchem as dc
-from functools import lru_cache
-
-# Define Base Model Path
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_DIR = os.path.join(BASE_DIR, "ml_models")
-
-# Global dictionary for cached models
-MODEL_CACHE = weakref.WeakValueDictionary()
-
-# Precompute feature names for XGBoost (2048 bits)
-XGB_FEATURE_NAMES = [f"bit{i}" for i in range(2048)]
-
-def load_model(model_name):
-    """Load model from disk and cache it if not already loaded."""
-    if model_name in MODEL_CACHE:
-        return MODEL_CACHE[model_name]  # Return cached model
-
-    model_path = os.path.join(MODEL_DIR, model_name)
+#     # Step 4: Combine results with original SMILES and any errors
+#     format_start_time = time.perf_counter()
+#     results_map = {smiles: float(pred) for smiles, pred in zip(valid_smiles, predictions)}
+#     results_map.update(errors)
+#     final_results = [results_map.get(s, None) for s in smiles_list]  # Ensure order matches input
+#     format_end_time = time.perf_counter()
+#     LOGGER.info(f"[TIMING] Result formatting: {(format_end_time - format_start_time) * 1000:.4f} ms")
     
-    if model_name.endswith(".h5"):  # TensorFlow
-        model = tf.keras.models.load_model(model_path, compile=False)
-    elif model_name.endswith(".pkl"):  # Random Forest
-        with open(model_path, "rb") as f:
-            model = pickle.load(f)
-    elif model_name.endswith(".json"):  # XGBoost
-        model = xgb.Booster()
-        model.load_model(model_path)
-    else:
-        raise ValueError("Unsupported model format")
+#     overall_end_time = time.perf_counter()
+#     LOGGER.info(f"[TIMING] Total 'predict_batch_ic50' execution: {(overall_end_time - overall_start_time) * 1000:.4f} ms")
 
-    MODEL_CACHE[model_name] = model  # Store in cache with weak reference
-    return model
-
-@lru_cache(maxsize=1000)
-def smiles_to_ecfp(smiles, radius=3, n_bits=2048):
-    """Convert a SMILES string to an ECFP6 fingerprint vector with caching."""
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        return None  # Invalid SMILES
-    
-    fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=n_bits)
-    
-    array = np.zeros((1, n_bits), dtype=np.float32)
-    DataStructs.ConvertToNumpyArray(fp, array[0])
-    
-    return array  # Already float32
-
-def smiles_to_maccs(smiles):
-    mol = Chem.MolFromSmiles(smiles)
-    if mol:
-        fp = MACCSkeys.GenMACCSKeys(mol)
-        bitstr = list(fp.ToBitString())
-        # Drop the first bit (bit0) to match training
-        bit_values = [int(x) for x in bitstr[1:]]  # skip bit0
-        return np.array([bit_values], dtype=np.float32)  # keep batch dim
-    else:
-        raise ValueError(f"Invalid SMILES string: {smiles}")
-    
-def smiles_to_pubchemfp(smiles):
-    featurizer = dc.feat.PubChemFingerprint()
-    fingerprints = featurizer.featurize(smiles)
-    return fingerprints[0]
-
-def normalize_fingerprint(fingerprint, model_method):
-    if not isinstance(fingerprint, np.ndarray):
-        raise TypeError("Fingerprint must be a numpy array.")
-
-    if model_method == "dl":
-        if len(fingerprint.shape) == 1:
-            return fingerprint.reshape((1, -1, 1))
-        elif len(fingerprint.shape) == 2:
-            return fingerprint.reshape((fingerprint.shape[0], fingerprint.shape[1], 1))
-        elif len(fingerprint.shape) == 3:
-            return fingerprint
-        else:
-            raise ValueError(f"Unsupported DL input shape: {fingerprint.shape}")
-
-    elif model_method in ["rf", "xgb"]:
-        if len(fingerprint.shape) == 1:
-            return fingerprint.reshape(1, -1)
-        elif len(fingerprint.shape) == 2:
-            return fingerprint
-        else:
-            raise ValueError(f"Unsupported input shape for {model_method}: {fingerprint.shape}")
-
-def predict_ic50(smiles, model_name, model_method, model_descriptor):
-    """Predict IC50 based on a given SMILES and model name."""
-    if model_descriptor == "ecfp":
-        fingerprint = smiles_to_ecfp(smiles)
-    elif model_descriptor == "maccs":
-        fingerprint = smiles_to_maccs(smiles)
-    elif model_descriptor == "pubchemfp":
-        fingerprint = smiles_to_pubchemfp(smiles)
-    else:
-        raise ValueError("Unsupported model type. Choose 'ecfp', 'maccs', or 'pubchemfp'.")
-    
-    if fingerprint is None:
-        return {"error": "Invalid SMILES input!"}
-    
-    fingerprint = normalize_fingerprint(fingerprint, model_method)
-
-    model = load_model(model_name)
-    print(fingerprint.shape)
-
-    if model_method == "dl":
-        prediction = model.predict(fingerprint, verbose=0)  # Suppress verbose output
-        return float(prediction[0][0])
-    elif model_method == "rf":
-        return float(model.predict(fingerprint)[0])
-    elif model_method == "xgb":
-        dmatrix = xgb.DMatrix(fingerprint, feature_names=XGB_FEATURE_NAMES)
-        return float(model.predict(dmatrix)[0])
-    
-    return {"error": "Unsupported model format"}
+#     # Return results in the same order as the input
+#     return final_results

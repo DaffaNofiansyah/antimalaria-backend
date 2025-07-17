@@ -25,7 +25,7 @@ This project is a Django REST API that provides functionality for user authentic
 
 Sebelum memulai, pastikan Anda sudah menginstal hal-hal berikut:
 
-- Python 3.8 atau lebih tinggi
+- Python ^3.9
 - pip (Python package installer)
 - PostgreSQL (jika menggunakan PostgreSQL sebagai database)
 
@@ -38,8 +38,8 @@ Ikuti langkah-langkah berikut untuk meng-clone dan men-setup proyek.
 Clone repository proyek ke mesin lokal Anda menggunakan Git:
 
 ```bash
-git clone https://github.com/DaffaNofiansyah/Antimalaria-BE.git
-cd Antimalaria-BE
+git clone https://github.com/DaffaNofiansyah/antimalaria-backend.git
+cd antimalaria-backend
 ```
 
 ### 2. Membuat virtual environment

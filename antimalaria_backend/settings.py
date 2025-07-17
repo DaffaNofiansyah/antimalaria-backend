@@ -15,9 +15,12 @@ import environ
 from datetime import timedelta
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+ML_MODEL_DIR = BASE_DIR / "ml_models"  # go one level above settings.py folder
+
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -26,33 +29,59 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-85w-p8xml#zbk779xq+trdi)_+g)v7pswe$3@gje^md=wmz6qz'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = "False"
 
 ALLOWED_HOSTS = ['*']
 
 STATIC_URL = '/static/'
 
 
-# Application definition
+# INSTALLED_APPS = [
+#     'django.contrib.admin',
+#     'django.contrib.auth',
+#     'django.contrib.contenttypes',
+#     'django.contrib.sessions',
+#     'django.contrib.messages',
+#     'django.contrib.staticfiles',
+#     "api",
+#     "rest_framework",
+#     'rest_framework_simplejwt',
+#     'django.contrib.sites',
+#     'rest_framework.authtoken',
+#     'allauth',
+#     'allauth.account',
+#     'allauth.socialaccount',
+#     'allauth.socialaccount.providers.google',
+#     'corsheaders',
+# ]
 
-INSTALLED_APPS = [
+BUILTIN_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    "api",
-    "rest_framework",
-    'rest_framework_simplejwt',
     'django.contrib.sites',
+]
+
+THIRD_PARTY_APPS = [
+    'rest_framework',
+    'rest_framework_simplejwt',
     'rest_framework.authtoken',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'corsheaders',
+    'drf_spectacular'
 ]
+
+LOCAL_APPS = [
+    'api',
+]
+
+INSTALLED_APPS = BUILTIN_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
@@ -75,8 +104,15 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Antimalaria API',
+    'DESCRIPTION': 'API for Antimalaria application',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
@@ -118,50 +154,30 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'antimalaria_backend.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
-
-# Initialize environment variables
-env = environ.Env()
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
-
-# GOOGLE_CLIENT_ID = env('GOOGLE_CLIENT_ID')
-
 DATABASES = {
     'default': {
-    'ENGINE': 'django.db.backends.postgresql',
-    'NAME': env('PGDATABASE'),
-    'USER': env('PGUSER'),
-    'PASSWORD': env('PGPASSWORD'),
-    'HOST': env('PGHOST'),
-    'PORT': 5432,
-    'OPTIONS': {
-      'sslmode': 'require',
-    },
-    'DISABLE_SERVER_SIDE_CURSORS': True,
-  }
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env('PGDATABASE'),
+        'USER': env('PGUSER'),
+        'PASSWORD': env('PGPASSWORD'),
+        'HOST': env('PGHOST'),
+        'PORT': 5432,
+        'OPTIONS': {
+            'sslmode': env('PGSSLMODE', default='require'),
+        },
+    }
 }
+
+AUTH_USER_MODEL = 'api.CustomUser'
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),  # Token akses berlaku 1 hari
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Token refresh berlaku 7 hari
-    "ROTATE_REFRESH_TOKENS": True,  # Perbarui refresh token setelah digunakan
-    "BLACKLIST_AFTER_ROTATION": True,  # Blacklist refresh token lama setelah rotasi
-    "ALGORITHM": "HS256",  # Algoritma enkripsi
-    "SIGNING_KEY": SECRET_KEY,  # Gunakan SECRET_KEY sebagai kunci tanda tangan
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,
 }
-
-# Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -178,30 +194,16 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Jakarta'
 
 USE_I18N = True
 
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
-
-# STATIC_URL = 'static/'
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Configure the email backend
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
@@ -209,3 +211,17 @@ AUTHENTICATION_BACKENDS = (
 
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO', # Set to INFO to see the timing logs
+    },
+}
